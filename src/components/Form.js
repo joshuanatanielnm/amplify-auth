@@ -18,8 +18,143 @@ const Form = (props) => {
   const [formType, updateFormType] = useState('signIn')
   const [formState, updateFormState] = useState(initialFormState)
 
-  function renderForm() {}
-  return <div>{renderForm()}</div>
+  function updateForm(event) {
+    const newFormState = {
+      ...formState,
+      [event.target.name]: event.target.value,
+    }
+    updateFormState(newFormState)
+  }
+
+  function renderForm() {
+    switch (formType) {
+      case 'signUp':
+        return (
+          <SignUp
+            signUp={() => signUp(formState, updateFormType)}
+            updateFormState={(e) => updateForm(e)}
+          />
+        )
+      case 'confirmSignUp':
+        return (
+          <ConfirmSignUp
+            confirmSignUp={confirmSignUp(formState, updateFormType)}
+            updateFormState={(e) => updateForm(e)}
+          />
+        )
+      case 'signIn':
+        return (
+          <SignIn
+            signIn={() => signIn(formState, props.setUser)}
+            updateFormState={(e) => updateForm(e)}
+          />
+        )
+      case 'forgotPassword':
+        return (
+          <ForgotPassword
+            forgotPassword={() => forgotPassword(formState, updateFormType)}
+            updateFormState={(e) => updateForm(e)}
+          />
+        )
+      case 'forgotPasswordSubmit':
+        return (
+          <ForgotPasswordSubmit
+            forgotPasswordSubmit={() =>
+              forgotPasswordSubmit(formState, updateFormType)
+            }
+            updateFormState={(e) => updateForm(e)}
+          />
+        )
+      default:
+        return null
+    }
+  }
+
+  async function signIn({ username, password }, setUser) {
+    try {
+      const user = await Auth.signIn({ username, password })
+      const userInfo = { username: username, ...user.attributes }
+      setUser(userInfo)
+    } catch (error) {}
+  }
+
+  async function signUp({ username, password, email }, updateFormType) {
+    try {
+      await Auth.signUp({
+        username,
+        password,
+        attributes: { email },
+      })
+      console.log('sign up success!')
+      updateFormType('confirmSignUp')
+    } catch (error) {
+      console.log('error signup up', error)
+    }
+  }
+
+  async function confirmSignUp({ username, confirmationCode }, updateFormType) {
+    try {
+      await Auth.confirmSignUp(username, confirmationCode)
+      updateFormType('signIn')
+    } catch (error) {
+      console.log('error signin up...', error)
+    }
+  }
+
+  async function forgotPassword({ username }, updateFormType) {
+    try {
+      await Auth.forgotPassword(username)
+      updateFormType('forgotPasswordSubmit')
+    } catch (error) {
+      console.log('error submitting username to reset password ...', error)
+    }
+  }
+
+  async function forgotPasswordSubmit(
+    { username, confirmationCode, password },
+    updateFormType
+  ) {
+    try {
+      await Auth.forgotPassword(username)
+      updateFormType('forgotPasswordSubmit')
+    } catch (error) {}
+  }
+
+  return (
+    <div>
+      {renderForm()}
+      {formType === 'signUp' && (
+        <p style={styles.toggleForm}>
+          Already have an account?{' '}
+          <span style={styles.anchor} onClick={() => updateFormType('signIn')}>
+            Sign In
+          </span>
+        </p>
+      )}
+      {formType === 'signIn' && (
+        <>
+          <p style={styles.toggleForm}>
+            Need an account?{' '}
+            <span
+              style={styles.anchor}
+              onClick={() => updateFormType('signUp')}
+            >
+              Sign Up
+            </span>
+          </p>
+          <p style={{ ...styles.toggleForm, ...styles.resetPassword }}>
+            Forget your password?{' '}
+            <span
+              style={styles.anchor}
+              onClick={() => updateFormType('forgotPassword')}
+            >
+              Reset Password
+            </span>
+          </p>
+        </>
+      )}
+    </div>
+  )
 }
 
 const styles = {
